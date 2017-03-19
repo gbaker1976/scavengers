@@ -3,7 +3,8 @@ using System.Collections.Generic;
 
 public interface IConsumable
 {
-	Dictionary<string, int> GetAttributes();
-	void Consumed ();
+	ItemType GetItemType();
+	void Collect (IConsumer c);
+	void Use (IConsumer c);
 }
 

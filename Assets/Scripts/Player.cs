@@ -18,7 +18,7 @@ public class Player : MovingObject, IConsumer
 
 
 	private Animator animator;                  //Used to store a reference to the Player's animator component.
-	private int food;                           //Used to store player food points total during level.
+	private int hp = 0;                           //Used to store player hit points total during level.
 	private GameManager gameManager;
 
 
@@ -28,10 +28,9 @@ public class Player : MovingObject, IConsumer
 		//Get a component reference to the Player's animator component
 		animator = GetComponent<Animator>();
 
-		//Get the current food point total stored in GameManager.instance between levels.
+		//Get the current hit point total stored in GameManager.instance between levels.
 		gameManager = GameManager.instance;
-		food = gameManager.playerFoodPoints;
-		UpdateFood (food);
+		AddHitPoints (gameManager.playerHitPoints);
 
 		//Call the Start function of the MovingObject base class.
 		base.Start ();
@@ -41,8 +40,8 @@ public class Player : MovingObject, IConsumer
 	//This function is called when the behaviour becomes disabled or inactive.
 	private void OnDisable ()
 	{
-		//When Player object is disabled, store the current local food total in the GameManager so it can be re-loaded in next level.
-		gameManager.playerFoodPoints = food;
+		//When Player object is disabled, store the current local hit total in the GameManager so it can be re-loaded in next level.
+		gameManager.playerHitPoints = hp;
 	}
 
 
@@ -76,14 +75,6 @@ public class Player : MovingObject, IConsumer
 		}
 	}
 
-	private void UpdateFood(int food)
-	{
-		gameManager.StateChanged ("player:food", food);
-
-		if (food <= 0) {
-			gameManager.StateChanged ("player:dead", 0);
-		}
-	}
 
 	//AttemptMove overrides the AttemptMove function in the base class MovingObject
 	//AttemptMove takes a generic parameter T which for Player will be of the type Wall, it also takes integers for x and y direction to move in.
@@ -99,9 +90,9 @@ public class Player : MovingObject, IConsumer
 		if (Move (xDir, yDir, out hit)) 
 		{
 			SoundManager.instance.RandomizeSfx (moveSound1, moveSound2);
-			//Every time player moves, subtract from food points total.
-			food--;
-			UpdateFood (food);
+			//Every time player moves, subtract from hit points total.
+			SubtractHitPoints(1);
+
 		}
 
 		//Set the playersTurn boolean of GameManager to false now that players turn is over.
@@ -134,11 +125,8 @@ public class Player : MovingObject, IConsumer
 
 			//Disable the player object since level is over.
 			enabled = false;
-		} else {
-			// other is an item of some kind
-			if (other.tag == "Item") {
-				Consume (other.gameObject.GetComponent<Item>());
-			}
+		} else if (other.tag == "Item") {
+			other.gameObject.GetComponent<Item>().Collect (this);
 		}
 	}
 
@@ -156,19 +144,14 @@ public class Player : MovingObject, IConsumer
 		//Set the trigger for the player animator to transition to the playerHit animation.
 		animator.SetTrigger ("playerHit");
 
-		//Subtract lost food points from the players total.
-		food -= loss;
-		UpdateFood (food);
+		//Subtract lost hit points from the players total.
+		SubtractHitPoints(loss);
 	}
 
 	public void Consume(IConsumable c){
-		Dictionary<string, int> attributes = c.GetAttributes ();
+		ItemType type = c.GetItemType ();
 
-		food += attributes["value"];
-		UpdateFood (food);
-		c.Consumed ();
-
-		switch ((ItemType)attributes["type"]) {
+		switch (type) {
 			case ItemType.Food:
 				SoundManager.instance.RandomizeSfx (eatSound1, eatSound2);
 				break;
@@ -176,5 +159,50 @@ public class Player : MovingObject, IConsumer
 				SoundManager.instance.RandomizeSfx (drinkSound1, drinkSound2);
 				break;
 		}
+	}
+
+
+	public int AddHitPoints(int ahp)
+	{
+		hp += ahp;
+		gameManager.StateChanged ("player:hp", hp);
+		return hp;
+	}
+
+	public int AddMagicPoints(int amp)
+	{
+		return -1;
+	}
+
+
+	public int AddMadnessPoints(int mdp)
+	{
+		return -1;
+	}
+
+
+	public int SubtractHitPoints(int shp)
+	{
+		hp -= shp;
+
+		if (hp <= 0) {
+			gameManager.StateChanged ("player:dead", 0);
+		} else {
+			gameManager.StateChanged ("player:hp", hp);
+		}
+
+		return hp;
+	}
+
+
+	public int SubtractMagicPoints(int smp)
+	{
+		return -1;
+	}
+
+
+	public int SubtractMadnessPoints(int mdp)
+	{
+		return -1;
 	}
 }

@@ -3,6 +3,10 @@
 public enum ItemType
 {
 	Food,
-	Soda
+	Soda,
+	Artifact,
+	ExtraLife,
+	Orb,
+	Elixir
 }
 
